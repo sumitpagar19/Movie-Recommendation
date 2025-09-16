@@ -24,25 +24,49 @@ def load_data():
         print(f"Error loading pickle files: {e}")
         print("Make sure movie_list.pkl and similarity.pkl are in the same directory as this script")
 
+import os
+import requests
+
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+
+import os
+import requests
 
 def fetch_poster_and_rating(movie_id):
-    """Fetch poster and rating from TMDB API"""
+    """
+    Fetch poster and rating from TMDB API using environment variable for API key.
+    Returns a tuple: (poster_url, rating)
+    """
     try:
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=0b1a9dca42a4f7ec4785c488330ab2e8&language=en-US"
+        # Get API key from environment variable
+        TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+        if not TMDB_API_KEY:
+            raise ValueError("TMDB_API_KEY environment variable not set.")
+
+        # Build URL
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}&language=en-US"
         response = requests.get(url, timeout=5)
+        response.raise_for_status()
         data = response.json()
 
-        if 'poster_path' in data and data['poster_path']:
-            poster_path = data['poster_path']
-            full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
+        # Poster URL
+        if data.get('poster_path'):
+            full_path = "https://image.tmdb.org/t/p/w500/" + data['poster_path']
         else:
             full_path = "https://via.placeholder.com/500x750?text=No+Poster"
 
+        # Rating
         rating = data.get('vote_average', 'N/A')
+
         return full_path, rating
+
+    except requests.exceptions.RequestException as req_err:
+        print(f"Request error for movie_id {movie_id}: {req_err}")
     except Exception as e:
         print(f"Error fetching data for movie_id {movie_id}: {e}")
-        return "https://via.placeholder.com/500x750?text=Error+Loading", "N/A"
+
+    # Fallback values if error occurs
+    return "https://via.placeholder.com/500x750?text=Error+Loading", "N/A"
 
 
 def recommend(movie):
